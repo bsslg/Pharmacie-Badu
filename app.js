@@ -1,975 +1,1565 @@
 /* =========================================================
-   PHARMACIE BADU
-   STYLE.CSS
+   PHARMACIE BADU - APP.JS
+   Version complète
    ========================================================= */
 
-:root {
-  --primary: #0f766e;
-  --primary-dark: #115e59;
-  --primary-light: #ccfbf1;
+"use strict";
 
-  --success: #16a34a;
-  --success-light: #dcfce7;
+const STORAGE_KEY = "PHARMACIE_BADU_V1";
+const EXPIRING_DAYS = 30;
 
-  --warning: #d97706;
-  --warning-light: #fef3c7;
+let state = loadState();
+let cart = [];
 
-  --danger: #dc2626;
-  --danger-light: #fee2e2;
-
-  --info: #2563eb;
-  --info-light: #dbeafe;
-
-  --dark: #172033;
-  --text: #334155;
-  --muted: #64748b;
-
-  --background: #f4f7f9;
-  --white: #ffffff;
-  --border: #e2e8f0;
-
-  --sidebar-width: 260px;
-
-  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 8px 25px rgba(15, 23, 42, 0.08);
-  --radius: 14px;
-}
 
 /* =========================================================
-   RESET
+   OUTILS
    ========================================================= */
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+const $ = (id) => document.getElementById(id);
+
+function money(value) {
+    return new Intl.NumberFormat("fr-FR").format(
+        Number(value) || 0
+    ) + " GNF";
 }
 
-html {
-  scroll-behavior: smooth;
+function number(value) {
+    return Number(value) || 0;
 }
 
-body {
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Arial,
-    sans-serif;
-
-  background: var(--background);
-  color: var(--text);
-  min-height: 100vh;
+function today() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+function dateTime(value) {
+    if (!value) return "-";
+
+    const d = new Date(value);
+
+    if (isNaN(d.getTime())) return value;
+
+    return d.toLocaleString("fr-FR", {
+        dateStyle: "short",
+        timeStyle: "short"
+    });
 }
 
-button {
-  cursor: pointer;
+function escapeHTML(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
-input,
-select,
-textarea {
-  width: 100%;
+function uid(prefix = "ID") {
+    return (
+        prefix +
+        "-" +
+        Date.now().toString(36) +
+        "-" +
+        Math.random().toString(36).substring(2, 7)
+    ).toUpperCase();
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+function reference(prefix) {
+    const d = new Date();
+    return (
+        prefix +
+        "-" +
+        d.getFullYear() +
+        String(d.getMonth() + 1).padStart(2, "0") +
+        String(d.getDate()).padStart(2, "0") +
+        "-" +
+        Math.floor(Math.random() * 9000 + 1000)
+    );
 }
+
 
 /* =========================================================
-   UTILITAIRES
+   DONNÉES
    ========================================================= */
 
-.hidden {
-  display: none !important;
+function defaultState() {
+    return {
+        products: [],
+        sales: [],
+        purchases: [],
+        customers: [],
+        suppliers: [],
+        expenses: [],
+        cashSession: null,
+        cashMovements: []
+    };
 }
 
-.full-width {
-  width: 100%;
+function loadState() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+
+        if (!saved) {
+            return defaultState();
+        }
+
+        const data = JSON.parse(saved);
+
+        return {
+            ...defaultState(),
+            ...data,
+            products: Array.isArray(data.products) ? data.products : [],
+            sales: Array.isArray(data.sales) ? data.sales : [],
+            purchases: Array.isArray(data.purchases) ? data.purchases : [],
+            customers: Array.isArray(data.customers) ? data.customers : [],
+            suppliers: Array.isArray(data.suppliers) ? data.suppliers : [],
+            expenses: Array.isArray(data.expenses) ? data.expenses : [],
+            cashMovements: Array.isArray(data.cashMovements)
+                ? data.cashMovements
+                : []
+        };
+
+    } catch (error) {
+        console.error("Erreur chargement données :", error);
+        return defaultState();
+    }
 }
 
-.full {
-  grid-column: 1 / -1;
+function saveState() {
+    try {
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(state)
+        );
+    } catch (error) {
+        console.error("Erreur sauvegarde :", error);
+        toast("Impossible de sauvegarder les données.", "danger");
+    }
 }
+
 
 /* =========================================================
-   LOADING
+   NOTIFICATIONS
    ========================================================= */
 
-.loading-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
+function toast(message, type = "success") {
 
-  background: #f8fafc;
+    const container = $("toastContainer");
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+    if (!container) return;
 
-  text-align: center;
+    const div = document.createElement("div");
+
+    div.className = `toast ${type}`;
+
+    div.innerHTML = `
+        <span>${type === "danger" ? "❌" : "✅"}</span>
+        <span>${escapeHTML(message)}</span>
+    `;
+
+    container.appendChild(div);
+
+    setTimeout(() => {
+        div.remove();
+    }, 3500);
 }
 
-.loading-logo {
-  width: 80px;
-  height: 80px;
-
-  border-radius: 22px;
-
-  background: var(--primary);
-  color: white;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 25px;
-  font-weight: 900;
-
-  margin-bottom: 20px;
-
-  box-shadow: var(--shadow-md);
-}
-
-.loading-screen h2 {
-  color: var(--dark);
-  margin-bottom: 8px;
-}
-
-.loading-screen p {
-  color: var(--muted);
-}
 
 /* =========================================================
-   APPLICATION
+   NAVIGATION
    ========================================================= */
 
-.app-container {
-  min-height: 100vh;
+const pageTitles = {
+    dashboard: "Tableau de bord",
+    sales: "Ventes",
+    products: "Produits & Stock",
+    purchases: "Achats",
+    customers: "Clients",
+    suppliers: "Fournisseurs",
+    expenses: "Dépenses",
+    cash: "Caisse",
+    reports: "Rapports"
+};
+
+function showSection(section) {
+
+    document.querySelectorAll(".content-section")
+        .forEach(el => {
+            el.classList.remove("active");
+        });
+
+    const target = $(section);
+
+    if (target) {
+        target.classList.add("active");
+    }
+
+    document.querySelectorAll(".menu-item")
+        .forEach(btn => {
+            btn.classList.toggle(
+                "active",
+                btn.dataset.section === section
+            );
+        });
+
+    if ($("pageTitle")) {
+        $("pageTitle").textContent =
+            pageTitles[section] || "PHARMACIE BADU";
+    }
+
+    document
+        .querySelector(".sidebar")
+        ?.classList.remove("mobile-open");
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 }
 
-.app-container.hidden {
-  display: none;
-}
 
 /* =========================================================
-   SIDEBAR
+   MODALES
    ========================================================= */
 
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
+function openModal(id) {
 
-  width: var(--sidebar-width);
+    const modal = $(id);
 
-  background: #102a2b;
-  color: white;
+    if (!modal) return;
 
-  z-index: 1000;
-
-  display: flex;
-  flex-direction: column;
-
-  overflow-y: auto;
+    modal.classList.remove("hidden");
 }
 
-/* BRAND */
+function closeModal(id) {
 
-.brand {
-  display: flex;
-  align-items: center;
+    const modal = $(id);
 
-  padding: 24px 20px 18px;
+    if (!modal) return;
 
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+    modal.classList.add("hidden");
 }
 
-.brand-logo {
-  width: 48px;
-  height: 48px;
+function closeAllModals() {
 
-  border-radius: 14px;
-
-  background: var(--primary);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 16px;
-  font-weight: 900;
-
-  margin-right: 12px;
+    document.querySelectorAll(".modal")
+        .forEach(modal => {
+            modal.classList.add("hidden");
+        });
 }
 
-.brand-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-text strong {
-  font-size: 15px;
-  letter-spacing: 1px;
-}
-
-.brand-text span {
-  font-size: 18px;
-  font-weight: 900;
-  color: #5eead4;
-}
-
-/* STATUS */
-
-.pharmacy-status {
-  margin: 18px 20px;
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  color: #a7f3d0;
-  font-size: 12px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-
-  background: #22c55e;
-
-  border-radius: 50%;
-
-  box-shadow: 0 0 0 4px rgba(34,197,94,0.12);
-}
-
-/* MENU */
-
-.sidebar-menu {
-  display: flex;
-  flex-direction: column;
-
-  padding: 0 12px;
-
-  gap: 4px;
-}
-
-.menu-item {
-  border: 0;
-  background: transparent;
-
-  color: #cbd5e1;
-
-  display: flex;
-  align-items: center;
-
-  width: 100%;
-
-  padding: 12px 14px;
-
-  border-radius: 10px;
-
-  text-align: left;
-
-  transition: 0.2s ease;
-}
-
-.menu-item:hover {
-  background: rgba(255,255,255,0.07);
-  color: white;
-}
-
-.menu-item.active {
-  background: var(--primary);
-  color: white;
-
-  box-shadow: 0 5px 15px rgba(15,118,110,0.25);
-}
-
-.menu-icon {
-  width: 28px;
-  font-size: 18px;
-}
-
-.menu-item span:last-child {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* SIDEBAR FOOTER */
-
-.sidebar-footer {
-  margin-top: auto;
-
-  padding: 18px;
-
-  border-top: 1px solid rgba(255,255,255,0.08);
-}
-
-.user-mini {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.user-avatar {
-  width: 38px;
-  height: 38px;
-
-  border-radius: 50%;
-
-  background: #134e4a;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-weight: 800;
-}
-
-.user-mini strong {
-  display: block;
-  font-size: 13px;
-}
-
-.user-mini small {
-  display: block;
-  color: #94a3b8;
-  font-size: 11px;
-  margin-top: 2px;
-}
 
 /* =========================================================
-   MAIN
+   PRODUITS
    ========================================================= */
 
-.main-content {
-  margin-left: var(--sidebar-width);
-
-  min-height: 100vh;
-
-  padding: 0 30px 40px;
+function getProduct(id) {
+    return state.products.find(p => p.id === id);
 }
+
+function productStatus(product) {
+
+    const stock = number(product.stock);
+    const alertStock = number(product.alertStock);
+
+    if (stock <= 0) {
+        return {
+            text: "Rupture",
+            className: "badge-danger"
+        };
+    }
+
+    if (product.expiry) {
+
+        const expiry = new Date(product.expiry);
+        const now = new Date(today());
+
+        if (expiry < now) {
+            return {
+                text: "Expiré",
+                className: "badge-danger"
+            };
+        }
+
+        const limit = new Date(now);
+        limit.setDate(
+            limit.getDate() + EXPIRING_DAYS
+        );
+
+        if (expiry <= limit) {
+            return {
+                text: "Expire bientôt",
+                className: "badge-warning"
+            };
+        }
+    }
+
+    if (stock <= alertStock) {
+        return {
+            text: "Stock faible",
+            className: "badge-warning"
+        };
+    }
+
+    return {
+        text: "Disponible",
+        className: "badge-success"
+    };
+}
+
+function renderSupplierOptions() {
+
+    const productSupplier = $("productSupplier");
+    const purchaseSupplier = $("purchaseSupplier");
+
+    const options = `
+        <option value="">Aucun fournisseur</option>
+        ${state.suppliers.map(s => `
+            <option value="${s.id}">
+                ${escapeHTML(s.name)}
+            </option>
+        `).join("")}
+    `;
+
+    if (productSupplier) {
+        const current = productSupplier.value;
+        productSupplier.innerHTML = options;
+        productSupplier.value = current;
+    }
+
+    if (purchaseSupplier) {
+        const current = purchaseSupplier.value;
+        purchaseSupplier.innerHTML = options;
+        purchaseSupplier.value = current;
+    }
+}
+
+function renderProductSelect() {
+
+    const select = $("purchaseProduct");
+
+    if (!select) return;
+
+    select.innerHTML = `
+        <option value="">
+            Sélectionner un produit
+        </option>
+
+        ${state.products.map(p => `
+            <option value="${p.id}">
+                ${escapeHTML(p.name)}
+            </option>
+        `).join("")}
+    `;
+}
+
+function renderProducts() {
+
+    const tbody = $("productsTable");
+
+    if (!tbody) return;
+
+    const search =
+        ($("productSearch")?.value || "")
+            .toLowerCase()
+            .trim();
+
+    const category =
+        $("productCategoryFilter")?.value || "";
+
+    const stockFilter =
+        $("stockFilter")?.value || "";
+
+    let products = state.products.filter(p => {
+
+        const matchesSearch =
+            !search ||
+            p.name.toLowerCase().includes(search) ||
+            String(p.lot || "")
+                .toLowerCase()
+                .includes(search);
+
+        const matchesCategory =
+            !category ||
+            p.category === category;
+
+        const status = productStatus(p);
+
+        const matchesStock =
+            !stockFilter ||
+            (stockFilter === "low" &&
+                number(p.stock) <= number(p.alertStock)) ||
+            (stockFilter === "out" &&
+                number(p.stock) <= 0) ||
+            (stockFilter === "expired" &&
+                status.text === "Expiré");
+
+        return (
+            matchesSearch &&
+            matchesCategory &&
+            matchesStock
+        );
+    });
+
+    if (!products.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-state">
+                    Aucun produit trouvé.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML = products.map(p => {
+
+        const status = productStatus(p);
+
+        const supplier =
+            state.suppliers.find(
+                s => s.id === p.supplierId
+            );
+
+        return `
+            <tr>
+
+                <td>
+                    <strong>
+                        ${escapeHTML(p.name)}
+                    </strong>
+                </td>
+
+                <td>
+                    ${escapeHTML(p.category)}
+                </td>
+
+                <td>
+                    ${money(p.purchasePrice)}
+                </td>
+
+                <td>
+                    ${money(p.salePrice)}
+                </td>
+
+                <td>
+                    <strong>
+                        ${number(p.stock)}
+                    </strong>
+                </td>
+
+                <td>
+                    ${p.expiry || "-"}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        supplier?.name || "-"
+                    )}
+                </td>
+
+                <td>
+                    <span class="badge ${status.className}">
+                        ${status.text}
+                    </span>
+                </td>
+
+                <td>
+
+                    <div class="table-actions">
+
+                        <button
+                            class="table-action-btn"
+                            onclick="editProduct('${p.id}')"
+                            title="Modifier"
+                        >
+                            ✏️
+                        </button>
+
+                        <button
+                            class="table-action-btn delete"
+                            onclick="deleteProduct('${p.id}')"
+                            title="Supprimer"
+                        >
+                            🗑️
+                        </button>
+
+                    </div>
+
+                </td>
+
+            </tr>
+        `;
+
+    }).join("");
+
+    $("totalProducts").textContent =
+        state.products.length;
+
+    $("lowStockProducts").textContent =
+        state.products.filter(
+            p => number(p.stock) <= number(p.alertStock)
+        ).length;
+
+    $("expiredProducts").textContent =
+        state.products.filter(
+            p => productStatus(p).text === "Expiré"
+        ).length;
+
+    $("expiringProducts").textContent =
+        state.products.filter(
+            p => productStatus(p).text === "Expire bientôt"
+        ).length;
+}
+
+function resetProductForm() {
+
+    $("productForm")?.reset();
+
+    $("productId").value = "";
+
+    $("productPurchasePrice").value = 0;
+    $("productSalePrice").value = 0;
+    $("productStock").value = 0;
+    $("productAlertStock").value = 5;
+
+    if ($("productModalTitle")) {
+        $("productModalTitle").textContent =
+            "Nouveau produit";
+    }
+}
+
+function editProduct(id) {
+
+    const p = getProduct(id);
+
+    if (!p) return;
+
+    $("productId").value = p.id;
+    $("productName").value = p.name;
+    $("productCategory").value = p.category;
+    $("productPurchasePrice").value = p.purchasePrice;
+    $("productSalePrice").value = p.salePrice;
+    $("productStock").value = p.stock;
+    $("productAlertStock").value = p.alertStock;
+    $("productExpiry").value = p.expiry || "";
+    $("productLot").value = p.lot || "";
+    $("productSupplier").value = p.supplierId || "";
+    $("productDescription").value = p.description || "";
+
+    $("productModalTitle").textContent =
+        "Modifier le produit";
+
+    openModal("productModal");
+}
+
+function deleteProduct(id) {
+
+    const p = getProduct(id);
+
+    if (!p) return;
+
+    if (!confirm(
+        `Supprimer "${p.name}" ?`
+    )) return;
+
+    state.products =
+        state.products.filter(
+            item => item.id !== id
+        );
+
+    saveState();
+    renderAll();
+
+    toast("Produit supprimé.");
+}
+
 
 /* =========================================================
-   TOPBAR
+   PRODUITS POUR VENTE
    ========================================================= */
 
-.topbar {
-  height: 82px;
+function renderSaleProducts() {
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+    const grid = $("saleProductsGrid");
 
-  border-bottom: 1px solid var(--border);
+    if (!grid) return;
 
-  margin-bottom: 28px;
+    const search =
+        ($("saleProductSearch")?.value || "")
+            .toLowerCase()
+            .trim();
+
+    const products = state.products.filter(p => {
+
+        return (
+            number(p.stock) > 0 &&
+            (
+                !search ||
+                p.name.toLowerCase().includes(search) ||
+                p.category.toLowerCase().includes(search)
+            )
+        );
+    });
+
+    if (!products.length) {
+
+        grid.innerHTML = `
+            <div class="empty-state">
+                Aucun produit disponible.
+            </div>
+        `;
+
+        return;
+    }
+
+    grid.innerHTML = products.map(p => {
+
+        const inCart =
+            cart.find(i => i.productId === p.id);
+
+        return `
+            <button
+                type="button"
+                class="product-sale-card ${inCart ? "selected" : ""}"
+                onclick="addToCart('${p.id}')"
+            >
+
+                <div class="product-sale-card-icon">
+                    💊
+                </div>
+
+                <strong>
+                    ${escapeHTML(p.name)}
+                </strong>
+
+                <span class="product-sale-card-price">
+                    ${money(p.salePrice)}
+                </span>
+
+                <small class="product-sale-card-stock">
+                    Stock : ${number(p.stock)}
+                </small>
+
+            </button>
+        `;
+
+    }).join("");
 }
 
-.page-title h1 {
-  font-size: 24px;
-  color: var(--dark);
-  margin-bottom: 4px;
+function addToCart(id) {
+
+    const product = getProduct(id);
+
+    if (!product) return;
+
+    if (number(product.stock) <= 0) {
+        toast("Produit en rupture de stock.", "danger");
+        return;
+    }
+
+    const existing =
+        cart.find(i => i.productId === id);
+
+    if (existing) {
+
+        if (
+            existing.quantity + 1 >
+            number(product.stock)
+        ) {
+            toast("Stock insuffisant.", "danger");
+            return;
+        }
+
+        existing.quantity++;
+
+    } else {
+
+        cart.push({
+            productId: product.id,
+            name: product.name,
+            quantity: 1,
+            unitPrice: number(product.salePrice),
+            purchasePrice: number(product.purchasePrice)
+        });
+    }
+
+    renderCart();
+    renderSaleProducts();
 }
 
-.page-title p {
-  color: var(--muted);
-  font-size: 13px;
+function changeCartQuantity(id, delta) {
+
+    const item =
+        cart.find(i => i.productId === id);
+
+    const product = getProduct(id);
+
+    if (!item || !product) return;
+
+    item.quantity += delta;
+
+    if (item.quantity <= 0) {
+        cart = cart.filter(
+            i => i.productId !== id
+        );
+    }
+
+    if (
+        item.quantity >
+        number(product.stock)
+    ) {
+        item.quantity = number(product.stock);
+
+        toast("Stock maximum atteint.", "danger");
+    }
+
+    renderCart();
+    renderSaleProducts();
 }
 
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+function removeFromCart(id) {
 
-.icon-btn {
-  width: 42px;
-  height: 42px;
-
-  border: 1px solid var(--border);
-
-  background: white;
-
-  border-radius: 10px;
-
-  position: relative;
-
-  font-size: 18px;
-}
-
-.icon-btn:hover {
-  background: #f8fafc;
-}
-
-.notification-badge {
-  position: absolute;
-
-  top: -4px;
-  right: -4px;
-
-  min-width: 18px;
-  height: 18px;
-
-  padding: 0 4px;
-
-  border-radius: 20px;
-
-  background: var(--danger);
-  color: white;
-
-  font-size: 10px;
-  font-weight: 800;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mobile-menu-btn {
-  display: none;
-
-  border: 0;
-  background: transparent;
-
-  font-size: 24px;
-
-  color: var(--dark);
-}
-
-/* =========================================================
-   BUTTONS
-   ========================================================= */
-
-.primary-btn,
-.secondary-btn,
-.danger-btn,
-.text-btn {
-  border: 0;
-  border-radius: 9px;
-
-  padding: 10px 16px;
-
-  font-weight: 700;
-
-  transition: 0.2s ease;
-}
-
-.primary-btn {
-  background: var(--primary);
-  color: white;
-}
-
-.primary-btn:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
-.secondary-btn {
-  background: #e2e8f0;
-  color: var(--dark);
-}
-
-.secondary-btn:hover {
-  background: #cbd5e1;
-}
-
-.danger-btn {
-  background: var(--danger-light);
-  color: var(--danger);
-}
-
-.danger-btn:hover {
-  background: #fecaca;
-}
-
-.text-btn {
-  padding: 4px;
-  background: transparent;
-  color: var(--primary);
-}
-
-.text-btn:hover {
-  text-decoration: underline;
-}
-
-/* =========================================================
-   CONTENT SECTIONS
-   ========================================================= */
-
-.content-section {
-  display: none;
-}
-
-.content-section.active {
-  display: block;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  margin-bottom: 22px;
-}
-
-.section-header h2 {
-  color: var(--dark);
-  font-size: 22px;
-
-  margin-bottom: 5px;
-}
-
-.section-header p {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* =========================================================
-   WELCOME
-   ========================================================= */
-
-.welcome-card {
-  background:
-    linear-gradient(
-      135deg,
-      #0f766e,
-      #134e4a
+    cart = cart.filter(
+        i => i.productId !== id
     );
 
-  color: white;
-
-  border-radius: 18px;
-
-  padding: 28px;
-
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  margin-bottom: 22px;
-
-  overflow: hidden;
-
-  position: relative;
-
-  box-shadow: var(--shadow-md);
+    renderCart();
+    renderSaleProducts();
 }
 
-.welcome-card::after {
-  content: "";
+function cartSubtotal() {
 
-  position: absolute;
-
-  width: 220px;
-  height: 220px;
-
-  right: -80px;
-  top: -100px;
-
-  border-radius: 50%;
-
-  background: rgba(255,255,255,0.06);
+    return cart.reduce(
+        (total, item) =>
+            total +
+            number(item.quantity) *
+            number(item.unitPrice),
+        0
+    );
 }
 
-.welcome-label {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 2px;
+function getDiscount() {
 
-  opacity: 0.75;
+    return Math.min(
+        number($("saleDiscount")?.value),
+        cartSubtotal()
+    );
 }
 
-.welcome-card h2 {
-  font-size: 28px;
+function cartTotal() {
 
-  margin: 6px 0 8px;
+    return Math.max(
+        0,
+        cartSubtotal() - getDiscount()
+    );
 }
 
-.welcome-card p {
-  color: #ccfbf1;
-  font-size: 13px;
+function renderCart() {
+
+    const container = $("cartItems");
+
+    if (!container) return;
+
+    if (!cart.length) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+                Le panier est vide.
+            </div>
+        `;
+
+    } else {
+
+        container.innerHTML =
+            cart.map(item => `
+
+                <div class="cart-item">
+
+                    <div class="cart-item-info">
+
+                        <strong>
+                            ${escapeHTML(item.name)}
+                        </strong>
+
+                        <small>
+                            ${money(item.unitPrice)}
+                        </small>
+
+                    </div>
+
+                    <div class="cart-item-controls">
+
+                        <button
+                            type="button"
+                            class="quantity-btn"
+                            onclick="changeCartQuantity('${item.productId}', -1)"
+                        >
+                            −
+                        </button>
+
+                        <span class="cart-item-quantity">
+                            ${item.quantity}
+                        </span>
+
+                        <button
+                            type="button"
+                            class="quantity-btn"
+                            onclick="changeCartQuantity('${item.productId}', 1)"
+                        >
+                            +
+                        </button>
+
+                        <button
+                            type="button"
+                            class="quantity-btn"
+                            onclick="removeFromCart('${item.productId}')"
+                        >
+                            🗑️
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `).join("");
+    }
+
+    const subtotal = cartSubtotal();
+    const discount = getDiscount();
+    const total = subtotal - discount;
+
+    $("cartCount").textContent =
+        cart.reduce(
+            (sum, item) => sum + item.quantity,
+            0
+        );
+
+    $("cartSubtotal").textContent =
+        money(subtotal);
+
+    $("cartDiscount").textContent =
+        money(discount);
+
+    $("cartTotal").textContent =
+        money(total);
+
+    updateCheckoutSummary();
 }
 
-.welcome-icon {
-  font-size: 65px;
-  position: relative;
-  z-index: 2;
+function updateCheckoutSummary() {
+
+    const subtotal = cartSubtotal();
+    const discount = getDiscount();
+    const total = subtotal - discount;
+    const received =
+        number($("saleReceived")?.value);
+
+    if ($("checkoutSubtotal")) {
+        $("checkoutSubtotal").textContent =
+            money(subtotal);
+    }
+
+    if ($("checkoutDiscount")) {
+        $("checkoutDiscount").textContent =
+            money(discount);
+    }
+
+    if ($("checkoutTotal")) {
+        $("checkoutTotal").textContent =
+            money(total);
+    }
+
+    if ($("checkoutChange")) {
+        $("checkoutChange").textContent =
+            money(Math.max(0, received - total));
+    }
 }
+
 
 /* =========================================================
-   STATS
+   CLIENTS
    ========================================================= */
 
-.stats-grid {
-  display: grid;
+function renderCustomerOptions() {
 
-  grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+    const select = $("saleCustomer");
 
-  gap: 16px;
+    if (!select) return;
 
-  margin-bottom: 22px;
+    select.innerHTML = `
+        <option value="">
+            Client comptoir
+        </option>
+
+        ${state.customers.map(c => `
+            <option value="${c.id}">
+                ${escapeHTML(c.name)}
+            </option>
+        `).join("")}
+    `;
 }
 
-.stat-card {
-  background: white;
+function renderCustomers() {
 
-  border: 1px solid var(--border);
+    const tbody = $("customersTable");
 
-  border-radius: var(--radius);
+    if (!tbody) return;
 
-  padding: 20px;
+    const search =
+        ($("customerSearch")?.value || "")
+            .toLowerCase()
+            .trim();
 
-  display: flex;
-  align-items: center;
+    const customers =
+        state.customers.filter(c => {
 
-  gap: 14px;
+            return (
+                !search ||
+                c.name.toLowerCase().includes(search) ||
+                String(c.phone || "")
+                    .toLowerCase()
+                    .includes(search)
+            );
+        });
 
-  box-shadow: var(--shadow-sm);
+    if (!customers.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-state">
+                    Aucun client.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML =
+        customers.map(c => {
+
+            const total =
+                state.sales
+                    .filter(s =>
+                        s.customerId === c.id
+                    )
+                    .reduce(
+                        (sum, s) =>
+                            sum + number(s.total),
+                        0
+                    );
+
+            return `
+                <tr>
+
+                    <td>
+                        <strong>
+                            ${escapeHTML(c.name)}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${escapeHTML(c.phone || "-")}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(c.address || "-")}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(c.notes || "-")}
+                    </td>
+
+                    <td>
+                        ${money(total)}
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="table-action-btn delete"
+                            onclick="deleteCustomer('${c.id}')"
+                        >
+                            🗑️
+                        </button>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
 }
 
-.stat-icon {
-  width: 48px;
-  height: 48px;
+function deleteCustomer(id) {
 
-  border-radius: 12px;
+    if (!confirm("Supprimer ce client ?")) return;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    state.customers =
+        state.customers.filter(
+            c => c.id !== id
+        );
 
-  font-size: 21px;
+    saveState();
+    renderAll();
 
-  flex-shrink: 0;
+    toast("Client supprimé.");
 }
 
-.stat-icon.revenue {
-  background: var(--success-light);
-}
-
-.stat-icon.sales {
-  background: var(--info-light);
-}
-
-.stat-icon.expenses {
-  background: var(--danger-light);
-}
-
-.stat-icon.profit {
-  background: var(--primary-light);
-}
-
-.stat-content {
-  min-width: 0;
-}
-
-.stat-content span {
-  display: block;
-
-  color: var(--muted);
-
-  font-size: 12px;
-
-  margin-bottom: 5px;
-}
-
-.stat-content strong {
-  display: block;
-
-  color: var(--dark);
-
-  font-size: 18px;
-
-  white-space: nowrap;
-}
-
-.stat-content small {
-  color: var(--muted);
-  font-size: 10px;
-}
 
 /* =========================================================
-   PANELS
+   FOURNISSEURS
    ========================================================= */
 
-.panel {
-  background: white;
+function renderSuppliers() {
 
-  border: 1px solid var(--border);
+    const tbody = $("suppliersTable");
 
-  border-radius: var(--radius);
+    if (!tbody) return;
 
-  box-shadow: var(--shadow-sm);
+    const search =
+        ($("supplierSearch")?.value || "")
+            .toLowerCase()
+            .trim();
 
-  margin-bottom: 22px;
+    const suppliers =
+        state.suppliers.filter(s => {
 
-  overflow: hidden;
+            return (
+                !search ||
+                s.name.toLowerCase().includes(search) ||
+                String(s.phone || "")
+                    .toLowerCase()
+                    .includes(search)
+            );
+        });
+
+    if (!suppliers.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty-state">
+                    Aucun fournisseur.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML =
+        suppliers.map(s => `
+
+            <tr>
+
+                <td>
+                    <strong>
+                        ${escapeHTML(s.name)}
+                    </strong>
+                </td>
+
+                <td>
+                    ${escapeHTML(s.contact || "-")}
+                </td>
+
+                <td>
+                    ${escapeHTML(s.phone || "-")}
+                </td>
+
+                <td>
+                    ${escapeHTML(s.email || "-")}
+                </td>
+
+                <td>
+                    ${escapeHTML(s.address || "-")}
+                </td>
+
+                <td>
+
+                    <button
+                        class="table-action-btn delete"
+                        onclick="deleteSupplier('${s.id}')"
+                    >
+                        🗑️
+                    </button>
+
+                </td>
+
+            </tr>
+
+        `).join("");
 }
 
-.panel-header {
-  padding: 18px 20px;
+function deleteSupplier(id) {
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+    if (!confirm("Supprimer ce fournisseur ?")) return;
 
-  gap: 15px;
+    state.suppliers =
+        state.suppliers.filter(
+            s => s.id !== id
+        );
 
-  border-bottom: 1px solid var(--border);
+    saveState();
+    renderAll();
+
+    toast("Fournisseur supprimé.");
 }
 
-.panel-header h3 {
-  color: var(--dark);
-  font-size: 15px;
-
-  margin-bottom: 3px;
-}
-
-.panel-header p {
-  color: var(--muted);
-  font-size: 11px;
-}
 
 /* =========================================================
-   DASHBOARD GRID
+   VENTES
    ========================================================= */
 
-.dashboard-grid {
-  display: grid;
+function renderSales() {
 
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+    const tbody = $("salesTable");
 
-  gap: 22px;
+    if (!tbody) return;
 
-  margin-bottom: 22px;
+    const dateFilter =
+        $("salesDateFilter")?.value || "";
+
+    const paymentFilter =
+        $("salesPaymentFilter")?.value || "";
+
+    const sales =
+        [...state.sales]
+            .filter(s =>
+                !dateFilter ||
+                s.dateKey === dateFilter
+            )
+            .filter(s =>
+                !paymentFilter ||
+                s.payment === paymentFilter
+            )
+            .sort(
+                (a, b) =>
+                    new Date(b.date) -
+                    new Date(a.date)
+            );
+
+    if (!sales.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty-state">
+                    Aucune vente.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML =
+        sales.map(s => {
+
+            const customer =
+                s.customerName || "Client comptoir";
+
+            const articles =
+                s.items.reduce(
+                    (sum, item) =>
+                        sum + number(item.quantity),
+                    0
+                );
+
+            return `
+                <tr>
+
+                    <td>
+                        <strong>
+                            ${escapeHTML(s.reference)}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${dateTime(s.date)}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(customer)}
+                    </td>
+
+                    <td>
+                        ${articles}
+                    </td>
+
+                    <td>
+                        ${money(s.subtotal)}
+                    </td>
+
+                    <td>
+                        <strong>
+                            ${money(s.total)}
+                        </strong>
+                    </td>
+
+                    <td>
+                        <span class="badge badge-info">
+                            ${escapeHTML(s.payment)}
+                        </span>
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="table-action-btn delete"
+                            onclick="deleteSale('${s.id}')"
+                            title="Annuler la vente"
+                        >
+                            🗑️
+                        </button>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
 }
+
+function deleteSale(id) {
+
+    const sale =
+        state.sales.find(
+            s => s.id === id
+        );
+
+    if (!sale) return;
+
+    if (!confirm(
+        "Annuler cette vente ? Le stock sera restauré."
+    )) return;
+
+    sale.items.forEach(item => {
+
+        const product =
+            getProduct(item.productId);
+
+        if (product) {
+            product.stock =
+                number(product.stock) +
+                number(item.quantity);
+        }
+    });
+
+    state.sales =
+        state.sales.filter(
+            s => s.id !== id
+        );
+
+    state.cashMovements =
+        state.cashMovements.filter(
+            m => m.reference !== sale.reference
+        );
+
+    saveState();
+    renderAll();
+
+    toast("Vente annulée et stock restauré.");
+}
+
 
 /* =========================================================
-   CASH SUMMARY
+   ACHATS
    ========================================================= */
 
-.cash-summary {
-  padding: 22px;
+function calculatePurchaseTotal() {
+
+    const quantity =
+        number($("purchaseQuantity")?.value);
+
+    const price =
+        number($("purchaseUnitPrice")?.value);
+
+    if ($("purchaseTotal")) {
+        $("purchaseTotal").textContent =
+            money(quantity * price);
+    }
 }
 
-.cash-main {
-  margin-bottom: 20px;
+function renderPurchases() {
+
+    const tbody = $("purchasesTable");
+
+    if (!tbody) return;
+
+    const purchases =
+        [...state.purchases]
+            .sort(
+                (a, b) =>
+                    new Date(b.date) -
+                    new Date(a.date)
+            );
+
+    if (!purchases.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="empty-state">
+                    Aucun achat enregistré.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML =
+        purchases.map(p => {
+
+            const product =
+                getProduct(p.productId);
+
+            const supplier =
+                state.suppliers.find(
+                    s => s.id === p.supplierId
+                );
+
+            return `
+                <tr>
+
+                    <td>
+                        ${escapeHTML(p.reference)}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            product?.name ||
+                            p.productName ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            supplier?.name ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${p.quantity}
+                    </td>
+
+                    <td>
+                        ${money(p.unitPrice)}
+                    </td>
+
+                    <td>
+                        ${money(p.total)}
+                    </td>
+
+                    <td>
+                        ${p.date}
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="table-action-btn delete"
+                            onclick="deletePurchase('${p.id}')"
+                        >
+                            🗑️
+                        </button>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
 }
 
-.cash-main span {
-  display: block;
+function deletePurchase(id) {
 
-  color: var(--muted);
+    const purchase =
+        state.purchases.find(
+            p => p.id === id
+        );
 
-  font-size: 12px;
+    if (!purchase) return;
 
-  margin-bottom: 5px;
+    const product =
+        getProduct(purchase.productId);
+
+    if (!confirm(
+        "Supprimer cet achat ? Le stock sera diminué."
+    )) return;
+
+    if (product) {
+
+        if (
+            number(product.stock) <
+            number(purchase.quantity)
+        ) {
+            toast(
+                "Impossible : le stock actuel est inférieur à la quantité achetée.",
+                "danger"
+            );
+            return;
+        }
+
+        product.stock -=
+            number(purchase.quantity);
+    }
+
+    state.purchases =
+        state.purchases.filter(
+            p => p.id !== id
+        );
+
+    saveState();
+    renderAll();
+
+    toast("Achat supprimé.");
 }
 
-.cash-main strong {
-  display: block;
-
-  font-size: 28px;
-
-  color: var(--dark);
-}
-
-.cash-details {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-
-  gap: 12px;
-}
-
-.cash-details div {
-  background: #f8fafc;
-
-  border-radius: 10px;
-
-  padding: 12px;
-}
-
-.cash-details span {
-  display: block;
-
-  color: var(--muted);
-
-  font-size: 11px;
-
-  margin-bottom: 5px;
-}
-
-.cash-details strong {
-  color: var(--dark);
-
-  font-size: 13px;
-}
-
-.dashboard-grid .full-width {
-  margin: 0 22px 22px;
-
-  width: calc(100% - 44px);
-}
 
 /* =========================================================
-   ALERTS
+   DEPENSES
    ========================================================= */
 
-.alerts-list {
-  padding: 8px 20px 18px;
+function renderExpenses() {
+
+    const tbody = $("expensesTable");
+
+    if (!tbody) return;
+
+    const expenses =
+        [...state.expenses]
+            .sort(
+                (a, b) =>
+                    new Date(b.date) -
+                    new Date(a.date)
+            );
+
+    if (!expenses.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">
+                    Aucune dépense.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML =
+        expenses.map(e => `
+
+            <tr>
+
+                <td>
+                    <strong>
+                        ${escapeHTML(e.label)}
+                    </strong>
+                </td>
+
+                <td>
+                    ${escapeHTML(e.category)}
+                </td>
+
+                <td>
+                    ${money(e.amount)}
+                </td>
+
+                <td>
+                    ${escapeHTML(e.payment)}
+                </td>
+
+                <td>
+                    ${e.dateKey}
+                </td>
+
+                <td>
+                    ${escapeHTML(e.note || "-")}
+                </td>
+
+                <td>
+
+                    <button
+                        class="table-action-btn delete"
+                        onclick="deleteExpense('${e.id}')"
+                    >
+                        🗑️
+                    </button>
+
+                </td>
+
+            </tr>
+
+        `).join("");
 }
 
-.alert-item {
-  display: flex;
+function deleteExpense(id) {
 
-  align-items: center;
+    if (!confirm("Supprimer cette dépense ?")) return;
 
-  gap: 10px;
+    state.expenses =
+        state.expenses.filter(
+            e => e.id !== id
+        );
 
-  padding: 11px 0;
+    saveState();
+    renderAll();
 
-  border-bottom: 1px solid var(--border);
+    toast("Dépense supprimée.");
 }
 
-.alert-item:last-child {
-  border-bottom: 0;
-}
-
-.alert-item-icon {
-  width: 34px;
-  height: 34px;
-
-  border-radius: 9px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: var(--warning-light);
-}
-
-.alert-item.danger .alert-item-icon {
-  background: var(--danger-light);
-}
-
-.alert-item-info {
-  flex: 1;
-}
-
-.alert-item-info strong {
-  display: block;
-
-  color: var(--dark);
-
-  font-size: 12px;
-}
-
-.alert-item-info span {
-  display: block;
-
-  color: var(--muted);
-
-  font-size: 10px;
-
-  margin-top: 2px;
-}
-
-.empty-state {
-  text-align: center;
-
-  padding: 28px 15px;
-
-  color: var(--muted);
-}
-
-.empty-state div {
-  font-size: 28px;
-  margin-bottom: 8px;
-}
-
-.empty-state p {
-  font-size: 12px;
-}
 
 /* =========================================================
-   TABLE
+   CAISSE
    ========================================================= */
 
-.table-container {
-  width: 100%;
-  overflow-x: auto;
+function getSessionSales() {
+
+    if (!state.cashSession) return [];
+
+    const opened =
+        new Date(state.cashSession.openedAt);
+
+    return state.sales.filter(
+        s => new Date(s.date) >= opened
+    );
 }
 
-table {
-  width: 100%;
+function getSessionExpenses() {
 
-  border-collapse: collapse;
+    if (!state.cashSession) return [];
 
-  min-width: 760px;
+    const opened =
+        new Date(state.cashSession.openedAt);
+
+    return state.expenses.filter(
+        e => new Date(e.date) >= opened
+    );
 }
 
-thead {
-  background: #f8fafc;
-}
+function cashValues() {
 
-th {
-  color: var(--muted);
+    if (!state.cashSession) {
+        return {
+            opening: 0,
+            physical: 0,
+            electronic: 0,
+            in: 0,
+            out: 0,
+            balance: 0
+        };
+    }
 
-  font-size: 11px;
+    const opening =
+        number(state.cashSession.openingAmount);
 
-  font-weight: 800;
-
-  text-transform: uppercase;
-
-  letter-spacing: 0.4px;
-
-  padding: 12px 16px;
-
-  text-align: left;
-
-  white-space: nowrap;
-}
-
-td {
-  padding: 13px 16px;
-
-  border-top: 1px solid var(--border);
-
-  color: var(--text);
-
-  font-size: 12px;
-
-  vertical-align: middle;
-}
-
-tbody tr:hover {
-  background: #f8fafc;
-}
-
-.empty-table {
-  text-align: center;
-
-  color: var(--muted);
-
-  padding: 35px !important;
-}
-
-.table-product {
-  display: flex;
-  align-items: center;
-  gap
+    const sales =
