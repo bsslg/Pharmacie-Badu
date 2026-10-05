@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f172a"
+  >
+
+  <title>PHARMACIE BADU</title>
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+</head>
+
+<body>
+
+  <!-- =====================================================
+       CHARGEMENT
+       ===================================================== -->
+
+  <div id="loadingScreen" class="loading-screen">
+    <div class="loading-box">
+      <div class="loading-logo">💊</div>
+      <h2>PHARMACIE BADU</h2>
+      <p>Chargement de l'application...</p>
+    </div>
+  </div>
+
+
+  <!-- =====================================================
+       APPLICATION
+       ===================================================== -->
+
+  <div class="app">
+
+    <!-- ===================================================
+         SIDEBAR
+         =================================================== -->
+
+    <aside class="sidebar">
+
+      <div class="brand">
+
+        <div class="brand-logo">
+          💊
+        </div>
+
+        <div>
+          <h1>PHARMACIE</h1>
+          <strong>BADU</strong>
+        </div>
+
+      </div>
+
+
+      <nav class="sidebar-menu">
+
+        <button
+          class="menu-item active"
+          data-section="dashboard"
+        >
+          <span>📊</span>
+          <span>Tableau de bord</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="sales"
+        >
+          <span>🛒</span>
+          <span>Ventes</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="products"
+        >
+          <span>💊</span>
+          <span>Produits & Stock</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="purchases"
+        >
+          <span>📦</span>
+          <span>Achats</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="customers"
+        >
+          <span>👥</span>
+          <span>Clients</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="suppliers"
+        >
+          <span>🚚</span>
+          <span>Fournisseurs</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="expenses"
+        >
+          <span>💸</span>
+          <span>Dépenses</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="cash"
+        >
+          <span>💰</span>
+          <span>Caisse</span>
+        </button>
+
+
+        <button
+          class="menu-item"
+          data-section="reports"
+        >
+          <span>📈</span>
+          <span>Rapports</span>
+        </button>
+
+      </nav>
+
+
+      <div class="sidebar-footer">
+
+        <div class="pharmacy-status">
+          <span class="status-dot"></span>
+          <span>Application active</span>
+        </div>
+
+        <small>
+          PHARMACIE BADU
+        </small>
+
+      </div>
+
+    </aside>
+
+
+    <!-- ===================================================
+         CONTENU PRINCIPAL
+         =================================================== -->
+
+    <main class="main-content">
+
+
+      <!-- =================================================
+           HEADER
+           ================================================= -->
+
+      <header class="topbar">
+
+        <div class="topbar-left">
+
+          <button
+            id="mobileMenuBtn"
+            class="mobile-menu-btn"
+          >
+            ☰
+          </button>
+
+          <div>
+
+            <h2 id="pageTitle">
+              Tableau de bord
+            </h2>
+
+            <p>
+              Gestion complète de la pharmacie
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="topbar-right">
+
+          <button
+            id="notificationBtn"
+            class="icon-button"
+            title="Alertes"
+          >
+            🔔
+
+            <span
+              id="alertCount"
+              class="notification-badge"
+            >
+              0
+            </span>
+
+          </button>
+
+
+          <div class="user-profile">
+
+            <div class="user-avatar">
+              B
+            </div>
+
+            <div>
+              <strong>
+                PHARMACIE BADU
+              </strong>
+
+              <small>
+                Administration
+              </small>
+            </div>
+
+          </div>
+
+        </div>
+
+      </header>
+
+
+      <!-- =================================================
+           DASHBOARD
+           ================================================= -->
+
+      <section
+        id="dashboard"
+        class="content-section active"
+      >
+
+        <div class="section-header">
+
+          <div>
+            <h2>Tableau de bord</h2>
+
+            <p>
+              Vue générale de votre activité
+            </p>
+          </div>
+
+          <button
+            id="quickSaleBtn"
+            class="btn btn-primary"
+          >
+            ➕ Nouvelle vente
+          </button>
+
+        </div>
+
+
+        <div class="stats-grid">
+
+          <div class="stat-card">
+
+            <div class="stat-icon">
+              💰
+            </div>
+
+            <div>
+              <span>Chiffre d'affaires</span>
+
+              <strong id="dashboardRevenue">
+                0 GNF
+              </strong>
+
+              <small>
+                Aujourd'hui
+              </small>
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon">
+              🛒
+            </div>
+
+            <div>
+              <span>Ventes</span>
+
+              <strong id="dashboardSales">
+                0
+              </strong>
+
+              <small>
+                Aujourd'hui
+              </small>
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon">
+              💸
+            </div>
+
+            <div>
+              <span>Dépenses</span>
+
+              <strong id="dashboardExpenses">
+                0 GNF
+              </strong>
+
+              <small>
+                Aujourd'hui
+              </small>
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon">
+              📈
+            </div>
+
+            <div>
+              <span>Bénéfice estimé</span>
+
+              <strong id="dashboardProfit">
+                0 GNF
+              </strong>
+
+              <small>
+                Aujourd'hui
+              </small>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- CAISSE -->
+
+        <div class="dashboard-grid">
+
+          <div class="dashboard-card">
+
+            <div class="card-header">
+
+              <div>
+                <h3>💰 État de la caisse</h3>
+
+                <span
+                  id="cashStatusBadge"
+                  class="badge badge-danger"
+                >
+                  Fermée
+                </span>
+              </div>
+
+              <button
+                id="openCashBtn"
+                class="btn btn-primary"
+              >
+                Ouvrir
+              </button>
+
+            </div>
+
+
+            <div class="cash-dashboard">
+
+              <div class="cash-main">
+
+                <span>
+                  Solde actuel
+                </span>
+
+                <strong id="dashboardCash">
+                  0 GNF
+                </strong>
+
+              </div>
+
+
+              <div class="cash-mini-grid">
+
+                <div>
+                  <span>Espèces</span>
+
+                  <strong
+                    id="dashboardCashPhysical"
+                  >
+                    0 GNF
+                  </strong>
+                </div>
+
+
+                <div>
+                  <span>Électronique</span>
+
+                  <strong
+                    id="dashboardCashElectronic"
+                  >
+                    0 GNF
+                  </strong>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- ALERTES -->
+
+          <div class="dashboard-card">
+
+            <div class="card-header">
+
+              <div>
+                <h3>⚠️ Alertes</h3>
+
+                <span>
+                  Stock et produits
+                </span>
+              </div>
+
+            </div>
+
+
+            <div
+              id="dashboardAlerts"
+              class="alerts-list"
+            >
+
+              <div class="alert-item">
+
+                <div class="alert-item-icon">
+                  ✅
+                </div>
+
+                <div class="alert-item-info">
+
+                  <strong>
+                    Aucune alerte
+                  </strong>
+
+                  <span>
+                    Tout fonctionne normalement.
+                  </span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- VENTES RECENTES -->
+
+        <div class="dashboard-card">
+
+          <div class="card-header">
+
+            <div>
+
+              <h3>
+                🛒 Ventes récentes
+              </h3>
+
+              <span>
+                Dernières opérations
+              </span>
+
+            </div>
+
+
+            <button
+              class="btn btn-secondary"
+              data-section-link="sales"
+            >
+              Voir tout
+            </button>
+
+          </div>
+
+
+          <div class="table-container">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Référence</th>
+                  <th>Client</th>
+                  <th>Total</th>
+                  <th>Paiement</th>
+                  <th>Date</th>
+                </tr>
+
+              </thead>
+
+              <tbody id="recentSalesTable">
+
+                <tr>
+                  <td
+                    colspan="5"
+                    class="empty-state"
+                  >
+                    Aucune vente récente.
+                  </td>
+                </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           VENTES
+           ================================================= -->
+
+      <section
+        id="sales"
+        class="content-section"
+      >
+
+        <div class="section-header">
+
+          <div>
+            <h2>Ventes</h2>
+
+            <p>
+              Enregistrer et suivre les ventes
+            </p>
+          </div>
+
+          <button
+            id="checkoutBtn"
+            class="btn btn-primary"
+          >
+            💳 Valider la vente
+          </button>
+
+        </div>
+
+
+        <div class="sales-layout">
+
+          <div class="products-sale-panel">
+
+            <div class="panel-header">
+
+              <h3>
+                Produits
+              </h3>
+
+              <input
+                type="search"
+                id="saleProductSearch"
+                class="form-control"
+                placeholder="Rechercher un produit..."
+              >
+
+            </div>
+
+
+            <div
+              id="saleProductsGrid"
+              class="products-sale-grid"
+            >
+
+            </div>
+
+          </div>
+
+
+          <div class="cart-panel">
+
+            <div class="panel-header">
+
+              <h3>
+                🛒 Panier
+
+                <span
+                  id="cartCount"
+                  class="badge badge-primary"
+                >
+                  0
+                </span>
+              </h3>
+
+            </div>
+
+
+            <div
+              id="cartItems"
+              class="cart-items"
+            >
+
+              <div class="empty-state">
+                Le panier est vide.
+              </div>
+
+            </div>
+
+
+            <div class="cart-summary">
+
+              <div>
+                <span>Sous-total</span>
+
+                <strong id="cartSubtotal">
+                  0 GNF
+                </strong>
+              </div>
+
+
+              <div>
+                <span>Remise</span>
+
+                <strong id="cartDiscount">
+                  0 GNF
+                </strong>
+              </div>
+
+
+              <div class="total-line">
+
+                <span>Total</span>
+
+                <strong id="cartTotal">
+                  0 GNF
+                </strong>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- HISTORIQUE VENTES -->
+
+        <div class="dashboard-card">
+
+          <div class="card-header">
+
+            <h3>
+              Historique des ventes
+            </h3>
+
+
+            <div class="filters">
+
+              <input
+                type="date"
+                id="salesDateFilter"
+                class="form-control"
+              >
+
+
+              <select
+                id="salesPaymentFilter"
+                class="form-control"
+              >
+
+                <option value="">
+                  Tous les paiements
+                </option>
+
+                <option value="Espèces">
+                  Espèces
+                </option>
+
+                <option value="Orange Money">
+                  Orange Money
+                </option>
+
+                <option value="MTN Money">
+                  MTN Money
+                </option>
+
+                <option value="Carte">
+                  Carte bancaire
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div class="table-container">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Référence</th>
+                  <th>Date</th>
+                  <th>Client</th>
+                  <th>Articles</th>
+                  <th>Sous-total</th>
+                  <th>Total</th>
+                  <th>Paiement</th>
+                  <th>Action</th>
+                </tr>
+
+              </thead>
+
+              <tbody id="salesTable">
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           PRODUITS / STOCK
+           ================================================= -->
+
+      <section
+        id="products"
+        class="content-section"
+      >
+
+        <div class="section-header">
+
+          <div>
+
+            <h2>
+              Produits & Stock
+            </h2>
+
+            <p>
+              Gestion des médicaments et produits
+            </p>
+
+          </div>
+
+
+          <button
+            id="addProductBtn"
+            class="btn btn-primary"
+          >
+            ➕ Nouveau produit
+          </button>
+
+        </div>
+
+
+        <div class="mini-stats">
+
+          <div class="mini-stat">
+            <span>Total produits</span>
+            <strong id="totalProducts">0</strong>
+          </div>
+
+          <div class="mini-stat">
+            <span>Stock faible</span>
+            <strong id="lowStockProducts">0</strong>
+          </div>
+
+          <div class="mini-stat">
+            <span>Expirés</span>
+            <strong id="expiredProducts">0</strong>
+          </div>
+
+          <div class="mini-stat">
+            <span>Expiration proche</span>
+            <strong id="expiringProducts">0</strong>
+          </div>
+
+        </div>
+
+
+        <div class="dashboard-card">
+
+          <div class="card-header">
+
+            <div class="filters">
+
+              <input
+                type="search"
+                id="productSearch"
+                class="form-control"
+                placeholder="Rechercher..."
+              >
+
+
+              <select
+                id="productCategoryFilter"
+                class="form-control"
+              >
+
+                <option value="">
+                  Toutes les catégories
+                </option>
+
+                <option value="Médicaments">
+                  Médicaments
+                </option>
+
+                <option value="Parapharmacie">
+                  Parapharmacie
+                </option>
+
+                <option value="Hygiène">
+                  Hygiène
+                </option>
+
+                <option value="Cosmétiques">
+                  Cosmétiques
+                </option>
+
+                <option value="Autres">
+                  Autres
+                </option>
+
+              </select>
+
+
+              <select
+                id="stockFilter"
+                class="form-control"
+              >
+
+                <option value="">
+                  Tous les stocks
+                </option>
+
+                <option value="low">
+                  Stock faible
+                </option>
+
+                <option value="out">
+                  Rupture
+                </option>
+
+                <option value="expired">
+                  Expirés
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div class="table-container">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Produit</th>
+                  <th>Catégorie</th>
+                  <th>Prix achat</th>
+                  <th>Prix vente</th>
+                  <th>Stock</th>
+                  <th>Expiration</th>
+                  <th>Fournisseur</th>
+                  <th>État</th>
+                  <th>Actions</th>
+                </tr>
+
+              </thead>
+
+              <tbody id="productsTable">
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           ACHATS
+           ================================================= -->
+
+      <section
+        id="purchases"
+        class="content-section"
+      >
+
+        <div class="section-header">
+
+          <div>
+
+            <h2>Achats</h2>
+
+            <p>
+              Approvisionnement de la pharmacie
+            </p>
+
+          </div>
+
+
+          <button
+            id="addPurchaseBtn"
+            class="btn btn-primary"
+          >
+            ➕ Nouvel achat
+          </button>
+
+        </div>
+
+
+        <div class="dashboard-card">
+
+          <div class="table-container">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Référence</th>
+                  <th>Produit</th>
+                  <th>Fournisseur</th>
+                  <th>Quantité</th>
+                  <th>Prix unitaire</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+
+              </thead>
+
+              <tbody id="purchasesTable">
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           CLIENTS
+           ================================================= -->
+
+      <section
+        id="customers"
+        class="content-section"
+      >
+
+        <div class="section-header">
+
+          <div>
+
+            <h2>Clients</h2>
+
+            <p>
+              Gestion de la clientèle
+            </p>
+
+          </div>
+
+
+          <button
+            id="addCustomerBtn"
+            class="btn btn-primary"
+          >
+            ➕ Nouveau client
+          </button>
+
+        </div>
+
+
+        <div class="dashboard-card">
+
+          <div class="card-header">
+
+            <input
+              type="search"
+              id="customerSearch"
+              class="form-control"
+              placeholder="Rechercher un client..."
+            >
+
+          </div>
+
+
+          <div class="table-container">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Nom</th>
+                  <th>Téléphone</th>
+                  <th>Adresse</th>
+                  <th>Notes</th>
+                  <th>Total achats</th>
+                  <th>Action</th>
+                </tr>
+
+              </thead>
+
+              <tbody id="customersTable">
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           FOURNISSEURS
+           ================================================= -->
+
+      <section
+        id="suppliers"
+        class="content-section"
+      >
+
+        <div class="section-header">
+
+          <div>
+
+            <h2>Fournisseurs</h2>
+
+            <p>
+              Gestion des fournisseurs
+            </p>
+
+          </div>
+
+
+          <button
+            id="addSupplierBtn"
+            class="btn btn-primary"
+          >
+            ➕ Nouveau fournisseur
+          </button>
+
+        </div>
+
+
+        <div class="dashboard-card">
+
+          <div class="card-header">
+
+            <input
+              type="search"
+              id="supplierSearch"
+              class="form-control"
+              placeholder="Rechercher un fournisseur..."
+            >
+
+          </div>
+
+
+          <div class="table-container">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Entreprise</th>
+                  <th>Contact</th>
+                  <th>Téléphone</th>
+                  <th>Email</th>
+                  <th>Adresse</th>
+                  <th>Action</th>
+                </tr>
+
+              </thead>
+
+              <tbody id="suppliersTable">
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           DEPENSES
+           ================================================= -->
+
+      <section
+        id="expenses"
+        class="content-section"
+      >
+
+        <div class="section-header">
+
+          <div>
+
+            <h2>Dépenses</h2>
+
+            <p>
+              Suivi des dépenses de la pharmacie
+            </p>
+
+          </div>
+
+
+          <button
+            id="addExpenseBtn"
+            class="btn btn-primary"
+          >
+            ➕ Nouvelle dépense
+          </button>
+
+        </div>
+
+
+        <div class="dashboard-card">
+
+          <div class="table-container">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Libellé</th>
+                  <th>Catégorie</th>
+                  <th>Montant</th>
+                  <th>Paiement</th>
+                  <th>Date</th>
+                  <th>Note</th>
+                  <th>Action</th>
+                </tr>
+
+              </thead>
+
+              <tbody id="expensesTable">
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           CAISSE
+           ================================================= -->
+
+      <section
+        id="cash"
+        class="content-section"
+      >
+
+        <div class="section-header">
+
+          <div>
+
+            <h2>Caisse</h2>
+
+            <p>
+              Gestion des entrées et sorties
+            </p>
+
+          </div>
+
+
+          <button
+            id="cashMainAction"
+            class="btn btn-primary"
+          >
+            Ouvrir la caisse
+          </button>
+
+        </div>
+
+
+        <div class="cash-stats">
+
+          <div class="stat-card">
+
+            <div class="stat-icon">
+              💵
+            </div>
+
+            <div>
+              <span>Ouverture</span>
+
+              <strong id="cashOpening">
+                0 GNF
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <div class="stat-icon">
+              📥
+            </div>
+
+            <div>
+              <span>Entrées
